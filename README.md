@@ -76,7 +76,7 @@ IMF SDMX 3.0 API: `https://api.imf.org/external/sdmx/3.0`
 
 - Data are requested from **January 1976** where available. The IMF writes monthly periods as `1976-M01`, and the version segment `~` means "latest version."
 - Requests send `Accept: text/csv` first, then fall back to JSON. Only successful responses are cached, so a temporary IMF outage doesn't stick.
-- The Euro area uses IMF code **G163**.
+- The Euro area uses IMF code **G163**. If a country has no series under the `CPI` index type, the app tries the Harmonised Index of Consumer Prices (`{ISO3}.HICP._T.IX.M`), which is how the IMF publishes euro-area prices.
 - The country list comes from the CPI dataflow's codelist (`/structure/dataflow/IMF.STA/CPI/~?references=descendants`). If that fails, the app falls back to the ISO 3166 country list.
 - Responses are cached for 24 hours, so changing dates or chart options doesn't refetch data.
 - An optional IMF API key can be supplied in the environment variable `IMF_API_KEY`. It isn't needed for normal use.

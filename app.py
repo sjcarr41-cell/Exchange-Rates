@@ -42,7 +42,10 @@ CPI_DATAFLOW: str = "CPI"
 ER_DATAFLOW: str = "ER"
 # SDMX 3.0 version wildcards tried in order: "~" = latest (known to work on the IMF API), "+" = latest stable.
 DATAFLOW_VERSIONS: tuple[str, ...] = ("~", "+")
-CPI_KEY_TEMPLATE: str = "{iso3}.CPI._T.IX.M"
+CPI_KEY_TEMPLATE: str = "{iso3}.{index_type}._T.IX.M"
+# Index types tried in order. Most economies publish "CPI"; the Euro area (G163) and
+# EU members publish the Harmonised Index of Consumer Prices as "HICP".
+CPI_INDEX_TYPES: tuple[str, ...] = ("CPI", "HICP")
 ER_KEY_TEMPLATE: str = "{iso3}.XDC_USD.PA_RT.M"
 START_PERIOD: str = "1976-01"
 # The IMF writes monthly periods as "1976-M01"; this is the format its time filter expects.
@@ -335,7 +338,7 @@ def _fetch_imf_series_cached(dataflow: str, key: str) -> tuple[pd.Series, str]:
                 s = s[s.index >= pd.Timestamp(START_PERIOD + "-01")]
                 if s.empty:
                     # The IMF returns HTTP 200 with zero rows for unknown codes or unpublished series.
-                    errors.append(f"no observations returned at {r.url}")
+                    errors.append(f"no observations returned ({len(r.text.splitlines())} lines received) at {r.url}")
                     break
                 return s, r.url
     # Show the most informative messages (unique, last few).
@@ -344,8 +347,14 @@ def _fetch_imf_series_cached(dataflow: str, key: str) -> tuple[pd.Series, str]:
 
 
 def get_cpi(iso3: str) -> FetchResult:
-    """Monthly CPI index for a country."""
-    return fetch_imf_series(CPI_DATAFLOW, CPI_KEY_TEMPLATE.format(iso3=iso3))
+    """Monthly consumer price index for a country: CPI, falling back to HICP."""
+    errors: list[str] = []
+    for index_type in CPI_INDEX_TYPES:
+        res = fetch_imf_series(CPI_DATAFLOW, CPI_KEY_TEMPLATE.format(iso3=iso3, index_type=index_type))
+        if res.series is not None:
+            return res
+        errors.append(f"[{index_type}] {res.error}")
+    return FetchResult(series=None, error=" || ".join(errors))
 
 
 def get_usd_rate(iso3: str, reference_index: pd.DatetimeIndex | None = None) -> FetchResult:
@@ -510,7 +519,7 @@ def main() -> None:
     if failures:
         for lbl, res in failures:
             st.error(f"Could not retrieve **{lbl}** from the IMF. Details: {res.error}")
-        test_url = imf_data_url(CPI_DATAFLOW, CPI_KEY_TEMPLATE.format(iso3="USA")) + f"?c[TIME_PERIOD]=ge:2025-M01"
+        test_url = imf_data_url(CPI_DATAFLOW, CPI_KEY_TEMPLATE.format(iso3="USA", index_type="CPI")) + f"?c[TIME_PERIOD]=ge:2025-M01"
         st.info("The IMF may not publish this series monthly for this economy, or the API may be temporarily "
                 "unavailable. Try another country or try again later.\n\n"
                 f"**Quick test:** open [this IMF link]({test_url}) in your browser. If it shows U.S. CPI data, "
