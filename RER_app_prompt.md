@@ -4,8 +4,8 @@
 |---|---|
 | Prompt written by | Claude Opus 5.5 (Anthropic), model ID `claude-opus-5-5` |
 | Date written | October 25, 2026 |
-| Model the prompt was run on | ____________________ (fill in, e.g. ChatGPT / Claude / Gemini + version) |
-| Date run | ____________________ |
+| Model the prompt was run on | Claude (fill in, e.g. ChatGPT / Claude / Gemini + version) |
+| Date run | October 25, 2026 |
 
 ---
 
